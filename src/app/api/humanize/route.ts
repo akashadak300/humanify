@@ -12,7 +12,9 @@ export async function POST(req: Request) {
       transitionFreq,
       creativity,
       contextPreservation,
-      preserveIntent
+      preserveIntent,
+      verificationAlgorithm,
+      synonymEngine
     } = body;
 
     if (!text) {
@@ -23,14 +25,16 @@ export async function POST(req: Request) {
     const orchestrator = new HumanizerOrchestrator();
 
     // Run the text through the pipeline
-    const result = orchestrator.process(text, {
+    const result = await orchestrator.process(text, {
       tone,
       formality,
       synonymIntensity,
       transitionFreq,
       creativity,
       contextPreservation,
-      preserveIntent
+      preserveIntent,
+      verificationAlgorithm,
+      synonymEngine
     });
 
     return NextResponse.json(result);

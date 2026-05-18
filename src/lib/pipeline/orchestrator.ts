@@ -15,6 +15,7 @@ export interface HumanizerConfig {
   contextPreservation: number[];
   preserveIntent: boolean;
   verificationAlgorithm?: 'dice' | 'levenshtein';
+  synonymEngine?: 'static' | 'neural';
 }
 
 export interface ProcessingResult {
@@ -33,7 +34,7 @@ export class HumanizerOrchestrator {
     this.protector = new Protector();
   }
 
-  public process(text: string, config: HumanizerConfig): ProcessingResult {
+  public async process(text: string, config: HumanizerConfig): Promise<ProcessingResult> {
     const { protectedText, dictionary } = this.protector.protectCitations(text);
     const lines = protectedText.split('\n');
     let outLines: string[] = [];
@@ -50,7 +51,9 @@ export class HumanizerOrchestrator {
       const sentences = nlp(ln).sentences().out('array') || [ln];
       totalOriginalSentences += sentences.length;
       
-      let processedSentences = sentences.map((sentence: string) => {
+      let processedSentences: string[] = [];
+      
+      for (const sentence of sentences) {
         let processed = sentence;
         
         // Syntax
@@ -59,7 +62,8 @@ export class HumanizerOrchestrator {
         allLogs = allLogs.concat(syntaxResult.logs);
 
         // Synonyms
-        const synonymResult = SynonymEngine.process(processed, config.synonymIntensity[0], config.tone);
+        const useNeural = config.synonymEngine === 'neural';
+        const synonymResult = await SynonymEngine.process(processed, config.synonymIntensity[0], config.tone, useNeural);
         processed = synonymResult.text;
         allLogs = allLogs.concat(synonymResult.logs);
 
@@ -77,12 +81,12 @@ export class HumanizerOrchestrator {
             config.verificationAlgorithm || 'dice'
           );
           totalRetentionScore += retention;
-          return verifiedText;
+          processedSentences.push(verifiedText);
         } else {
           totalRetentionScore += 100;
-          return processed;
+          processedSentences.push(processed);
         }
-      });
+      }
       
       outLines.push(processedSentences.join(' '));
     }

@@ -55,6 +55,7 @@ export default function Home() {
   const [contextPreservation, setContextPreservation] = useState([80]);
   const [preserveIntent, setPreserveIntent] = useState(true);
   const [verificationAlgorithm, setVerificationAlgorithm] = useState<'dice' | 'levenshtein'>('dice');
+  const [synonymEngine, setSynonymEngine] = useState<'static' | 'neural'>('static');
 
   // High-Level Styling State (Shared)
   const [tone, setTone] = useState("neutral");
@@ -65,7 +66,7 @@ export default function Home() {
     text, tone, formality,
     synonymIntensity, transitionFreq,
     creativity, contextPreservation, preserveIntent,
-    verificationAlgorithm
+    verificationAlgorithm, synonymEngine
   });
 
   const handleHumanizeSingle = async () => {
@@ -357,6 +358,24 @@ export default function Home() {
           <div className="space-y-6">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">B. Deterministic Engine</h3>
             
+            <div className="space-y-3 p-3 bg-muted/20 border border-border rounded-lg">
+              <label className="text-sm font-medium">Synonym Extraction Engine</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  className={`py-2 text-xs font-medium rounded-md transition-colors ${synonymEngine === 'static' ? 'bg-primary text-primary-foreground' : 'bg-background border border-border hover:bg-muted text-muted-foreground'}`}
+                  onClick={() => setSynonymEngine('static')}
+                >
+                  Static Dictionary
+                </button>
+                <button 
+                  className={`py-2 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1 ${synonymEngine === 'neural' ? 'bg-blue-600 text-white' : 'bg-background border border-border hover:bg-muted text-muted-foreground'}`}
+                  onClick={() => setSynonymEngine('neural')}
+                >
+                  <Sparkles className="h-3 w-3" /> Neural Context (BERT)
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Synonym Intensity</label>
@@ -396,7 +415,7 @@ export default function Home() {
               </Slider.Root>
             </div>
 
-            <div className="space-y-3">
+            <div className={`space-y-3 transition-opacity duration-200 ${!preserveIntent ? 'opacity-40 pointer-events-none' : ''}`}>
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Context Preservation</label>
                 <span className="text-xs text-muted-foreground">{contextPreservation[0]}%</span>
@@ -421,26 +440,25 @@ export default function Home() {
                 </Switch.Root>
               </div>
               
-              {preserveIntent && (
-                <div className="p-3 bg-muted/30 border border-border rounded-lg space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-foreground">Similarity Algorithm</label>
-                    <select 
-                      className="bg-background border border-border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
-                      value={verificationAlgorithm}
-                      onChange={(e) => setVerificationAlgorithm(e.target.value as any)}
-                    >
-                      <option value="dice">Sørensen–Dice Coefficient</option>
-                      <option value="levenshtein">Weighted Levenshtein</option>
-                    </select>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    {verificationAlgorithm === 'dice' 
-                      ? "Fast and robust overlap checking. Ideal for preserving full-sentence structural meaning without penalizing stylistic swaps." 
-                      : "Strict character-level precision. Mimics Project 3 by mathematically weighting insertions, deletions, and substitutions."}
-                  </p>
+              <div className={`p-3 bg-muted/30 border border-border rounded-lg space-y-3 transition-opacity duration-200 ${!preserveIntent ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-foreground">Similarity Algorithm</label>
+                  <select 
+                    className="bg-background border border-border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+                    value={verificationAlgorithm}
+                    onChange={(e) => setVerificationAlgorithm(e.target.value as any)}
+                    disabled={!preserveIntent}
+                  >
+                    <option value="dice">Sørensen–Dice Coefficient</option>
+                    <option value="levenshtein">Weighted Levenshtein</option>
+                  </select>
                 </div>
-              )}
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  {verificationAlgorithm === 'dice' 
+                    ? "Fast and robust overlap checking. Ideal for preserving full-sentence structural meaning without penalizing stylistic swaps." 
+                    : "Strict character-level precision. Mimics Project 3 by mathematically weighting insertions, deletions, and substitutions."}
+                </p>
+              </div>
             </div>
           </div>
         </div>

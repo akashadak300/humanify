@@ -29,7 +29,12 @@ export class SynonymEngine {
     }
   };
 
-  public static process(sentence: string, intensity: number, tone: string): { text: string; logs: TransformationLog[] } {
+  public static async process(
+    sentence: string, 
+    intensity: number, 
+    tone: string,
+    useNeural: boolean = false
+  ): Promise<{ text: string; logs: TransformationLog[] }> {
     if (intensity === 0) return { text: sentence, logs: [] };
 
     let doc = nlp(sentence);
@@ -37,7 +42,10 @@ export class SynonymEngine {
 
     const adjectives = doc.adjectives().out('array');
     const verbs = doc.verbs().out('array');
-    const wordsToConsider = [...adjectives, ...verbs];
+    const nouns = doc.nouns().out('array'); 
+    
+    // Neural can handle more parts of speech safely
+    const wordsToConsider = useNeural ? [...adjectives, ...verbs, ...nouns] : [...adjectives, ...verbs];
     
     const toneDict = this.dictionary[tone] || this.dictionary["neutral"];
 
@@ -46,6 +54,34 @@ export class SynonymEngine {
 
       const normalizedWord = word.toLowerCase().trim();
       
+      if (useNeural) {
+        try {
+          const response = await fetch('http://127.0.0.1:8000/api/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sentence: doc.text(), target_word: normalizedWord, tone: tone })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.predictions && data.predictions.length > 0) {
+              const bestSynonym = data.predictions[0];
+              doc.match(normalizedWord).replaceWith(bestSynonym);
+              logs.push({
+                type: "Synonym",
+                original: word,
+                replacement: bestSynonym,
+                confidence: 0.99 // Neural network confidence
+              });
+              continue; // Success, move to next word
+            }
+          }
+        } catch (error) {
+          console.error("Neural engine failed, falling back to static dictionary");
+        }
+      }
+      
+      // Fallback or Static Mode
       if (toneDict[normalizedWord]) {
         const synonyms = toneDict[normalizedWord];
         const randomSynonym = synonyms[Math.floor(Math.random() * synonyms.length)];
@@ -56,7 +92,7 @@ export class SynonymEngine {
           type: "Synonym",
           original: word,
           replacement: randomSynonym,
-          confidence: Math.round((0.8 + Math.random() * 0.15) * 100) / 100 // Mock 80-95% confidence
+          confidence: Math.round((0.8 + Math.random() * 0.15) * 100) / 100
         });
       }
     }
