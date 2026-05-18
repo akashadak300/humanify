@@ -14,6 +14,7 @@ export interface HumanizerConfig {
   creativity: number[];
   contextPreservation: number[];
   preserveIntent: boolean;
+  verificationAlgorithm?: 'dice' | 'levenshtein';
 }
 
 export interface ProcessingResult {
@@ -69,7 +70,12 @@ export class HumanizerOrchestrator {
 
         // Verification
         if (config.preserveIntent) {
-          const { verifiedText, retention } = Verifier.verify(sentence, processed, config.contextPreservation[0]);
+          const { verifiedText, retention } = Verifier.verify(
+            sentence, 
+            processed, 
+            config.contextPreservation[0],
+            config.verificationAlgorithm || 'dice'
+          );
           totalRetentionScore += retention;
           return verifiedText;
         } else {
