@@ -456,7 +456,7 @@ export default function Home() {
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   {verificationAlgorithm === 'dice' 
                     ? "Fast and robust overlap checking. Ideal for preserving full-sentence structural meaning without penalizing stylistic swaps." 
-                    : "Strict character-level precision. Mimics Project 3 by mathematically weighting insertions, deletions, and substitutions."}
+                    : "Strict character-level precision. Evaluates text by mathematically weighting insertions, deletions, and substitutions."}
                 </p>
               </div>
             </div>
